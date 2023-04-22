@@ -10,10 +10,9 @@ midi_paths = list(Path('/home/nico/data/midis').glob('*.mid'))
 
 pitch_range = range(21, 109)
 additional_tokens = ADDITIONAL_TOKENS
-# additional_tokens['Chord'] = True
+additional_tokens['Chord'] = True
 additional_tokens['TimeSignature'] = True
-# additional_tokens['Rest'] = True
-# additional_tokens['Chord'] = True
+additional_tokens['Rest'] = True
 # additional_tokens['time_signature_range'] = (8, 2)
 
 tokenizer = REMI(pitch_range=pitch_range,
