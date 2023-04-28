@@ -1,12 +1,17 @@
+import sys
+
+from pathlib import Path
 from miditok import REMI
+from miditok.constants import ADDITIONAL_TOKENS, CHORD_MAPS
 from miditok.utils import get_midi_programs
 from miditoolkit import MidiFile
-from miditok.constants import CHORD_MAPS, ADDITIONAL_TOKENS
-from pathlib import Path
 
-token_params_path = Path("/home/nico/data/ai/models/midi/token_params.json")
-tokens_path = Path("/home/nico/data/ai/models/midi/")
-midi_paths = list(Path('/home/nico/data/midis').glob('*.mid'))
+do_BPE = False
+path_suffix = '/bpe' if do_BPE else ''
+midis_path = sys.argv[2] if len(sys.argv) > 2 else '/home/nico/data/midis'
+TOKENS_PATH = sys.argv[1] if len(sys.argv) > 1 else '/home/nico/data/ai/models/midi'
+token_params_path = Path(f"{TOKENS_PATH}{path_suffix}/token_params.json")
+midi_paths = list(Path(midis_path).glob('*.mid'))
 
 pitch_range = range(21, 109)
 additional_tokens = ADDITIONAL_TOKENS
@@ -18,23 +23,25 @@ additional_tokens['Rest'] = True
 tokenizer = REMI(pitch_range=pitch_range,
                  additional_tokens=additional_tokens)
 
-tokenizer.tokenize_midi_dataset(        # 2 velocity and 1 duration values
+print('Tokenizing dataset...')
+tokenizer.tokenize_midi_dataset(
     midi_paths,
-    tokens_path,
+    Path(TOKENS_PATH),
 )
 
+if do_BPE:
+    # Constructs the vocabulary with BPE, from the tokenized files
+    print('Learning BPE...')
+    tokenizer.learn_bpe(
+        vocab_size=len(tokenizer),
+        tokens_paths=Path(TOKENS_PATH).glob('*.json'),
+        start_from_empty_voc=False,
+    )
+
+    # Converts the tokenized musics into tokens with BPE
+    print('Applying BPE...')
+    tokenizer.apply_bpe_to_dataset(
+        Path(f'{TOKENS_PATH}/'), Path(f'{TOKENS_PATH}{TOKENS_PATH}{path_suffix}'))
+
+print('Saving params...')
 tokenizer.save_params(token_params_path)
-
-# midi = MidiFile(midi_path)
-#programs = get_midi_programs(midi)
-
-# Converts the tokenized musics into tokens with BPE
-# tokenizer.apply_bpe_to_dataset(Path('/home/nico/data/ai/models/midi/'), Path('path', 'to', 'tokens_BPE'))
-
-# Constructs the vocabulary with BPE, from the tokenized files
-""" tokenizer.learn_bpe(
-    vocab_size=len(tokenizer),
-    tokens_paths=list([tokens_path]),
-    start_from_empty_voc=False,
-)
-tokenizer.apply_bpe(tokens) """
