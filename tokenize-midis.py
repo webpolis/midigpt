@@ -1,15 +1,17 @@
 import sys
+import os
 
 from pathlib import Path
 from miditok import REMI
-from miditok.constants import ADDITIONAL_TOKENS, CHORD_MAPS
-from miditok.utils import get_midi_programs
+from miditok.constants import ADDITIONAL_TOKENS
 from miditoolkit import MidiFile
+from tqdm import tqdm
 
 do_BPE = False
 path_suffix = '/bpe' if do_BPE else ''
 midis_path = sys.argv[2] if len(sys.argv) > 2 else '/home/nico/data/midis'
-TOKENS_PATH = sys.argv[1] if len(sys.argv) > 1 else '/home/nico/data/ai/models/midi'
+TOKENS_PATH = sys.argv[1] if len(
+    sys.argv) > 1 else '/home/nico/data/ai/models/midi'
 token_params_path = Path(f"{TOKENS_PATH}{path_suffix}/token_params.json")
 midi_paths = list(Path(midis_path).glob('*.mid'))
 
@@ -24,10 +26,15 @@ tokenizer = REMI(pitch_range=pitch_range,
                  additional_tokens=additional_tokens)
 
 print('Tokenizing dataset...')
-tokenizer.tokenize_midi_dataset(
-    midi_paths,
-    Path(TOKENS_PATH),
-)
+for midi_path in tqdm(midi_paths):
+    try:
+        midi = MidiFile(midi_path)
+        tokens = tokenizer(midi_path)
+        midi_name = os.path.basename(midi_path)
+
+        tokenizer.save_tokens(tokens, f'{TOKENS_PATH}/{midi_name}.json')
+    except Exception as e:
+        pass
 
 if do_BPE:
     # Constructs the vocabulary with BPE, from the tokenized files
